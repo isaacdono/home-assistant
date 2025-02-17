@@ -28,35 +28,41 @@ set(PICO_BOARD pico_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(home-assistant C CXX ASM)
+project(main C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(home-assistant home-assistant.c )
+add_executable(main main.c )
 
-pico_set_program_name(home-assistant "home-assistant")
-pico_set_program_version(home-assistant "0.1")
+pico_set_program_name(main "main")
+pico_set_program_version(main "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(home-assistant 0)
-pico_enable_stdio_usb(home-assistant 1)
+pico_enable_stdio_uart(main 0)
+pico_enable_stdio_usb(main 1)
 
 # Add the standard library to the build
-target_link_libraries(home-assistant
-        pico_stdlib)
+target_link_libraries(main
+        pico_stdlib
+)
+
 
 # Add the standard include files to the build
-target_include_directories(home-assistant PRIVATE
+target_include_directories(main PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Add any user requested libraries
-target_link_libraries(home-assistant 
-        
+target_link_libraries(main 
+        hardware_pio
+        hardware_adc
+        hardware_pwm
+        hardware_clocks
+        hardware_i2c
         )
 
-pico_add_extra_outputs(home-assistant)
+pico_add_extra_outputs(main)
 
