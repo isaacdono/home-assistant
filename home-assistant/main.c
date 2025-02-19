@@ -1,6 +1,8 @@
-#include "games.c"
+// #include "games.c"
+#include "music.c"
 
 int main() {
-    run_emulator();
+    // run_emulator();
+    music_player();
     return 0;
 }

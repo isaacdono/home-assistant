@@ -47,6 +47,7 @@
         "ctype.h": "c",
         "stdbool.h": "c",
         "string.h": "c",
-        "clocks.h": "c"
+        "clocks.h": "c",
+        "stdio.h": "c"
     }
 }
