@@ -43,6 +43,10 @@
         "neopixel_pio.h": "c",
         "ssd1306.h": "c",
         "stdlib.h": "c",
-        "binary_info.h": "c"
+        "binary_info.h": "c",
+        "ctype.h": "c",
+        "stdbool.h": "c",
+        "string.h": "c",
+        "clocks.h": "c"
     }
 }
