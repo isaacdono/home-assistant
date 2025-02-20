@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 #include "hardware/i2c.h"
@@ -14,13 +15,11 @@
 #define LEDS 7
 #define I2C_SDA 14
 #define I2C_SCL 15
-#define X_AXIS 27
-#define Y_AXIS 26
 
 // Estrutura para representar uma nota
 typedef struct {
     const char *name;
-    uint16_t frequency;
+    uint frequency;
 } Note;
 
 // Lista de notas
@@ -37,16 +36,16 @@ Note NOTES[] = {
 };
 
 typedef struct {
-    Note note;
-    uint8_t duration;
+    const Note *note;
+    uint duration;
 } Tone;
 
 typedef struct {
-    Tone *sheet;
+    const Tone *sheet;
     uint8_t length;
 } Song;
 
-const Tone mario_theme_sheet[] = {
+static const Tone mario_theme_sheet[] = {
     {&NOTES[64], 125}, {&NOTES[64], 125}, {&NOTES[88], 125}, {&NOTES[64], 125},
     {&NOTES[88], 125}, {&NOTES[72], 125}, {&NOTES[64], 125}, {&NOTES[88], 125},
     {&NOTES[78], 250}, {&NOTES[88], 125}, {&NOTES[76], 250}, {&NOTES[88], 250},
@@ -55,7 +54,7 @@ const Tone mario_theme_sheet[] = {
     {&NOTES[64], 250}, {&NOTES[88], 250}
 };
 
-const Tone imperial_march_sheet[] = {
+static const Tone imperial_march_sheet[] = {
     {&NOTES[52], 500}, {&NOTES[52], 500}, {&NOTES[56], 350}, {&NOTES[60], 150},
     {&NOTES[52], 500}, {&NOTES[56], 350}, {&NOTES[60], 150}, {&NOTES[52], 1000},
     {&NOTES[56], 500}, {&NOTES[56], 500}, {&NOTES[60], 350}, {&NOTES[64], 150},
@@ -64,8 +63,7 @@ const Tone imperial_march_sheet[] = {
 
 const Song mario_theme = {mario_theme_sheet, sizeof(mario_theme_sheet) / sizeof(Tone)};
 const Song imperial_march = {imperial_march_sheet, sizeof(imperial_march_sheet) / sizeof(Tone)};
-
-Song songs[] = {mario_theme, imperial_march};
+const Song *songs[] = {&mario_theme, &imperial_march};
 
 typedef struct {
     uint8_t buffer[ssd1306_buffer_length];
@@ -89,17 +87,16 @@ int index_[5][5] = {
     {0, 9, 10, 19, 20}   // Coluna 4
 };
 
-volatile bool running = false;
-volatile bool next_song = false;
+bool running = false;
+bool next_song = false;
 
-void toggle_pause(uint gpio, uint32_t events) {
-    sleep_ms(350);
-    running = !running;
-}
-
-void skip_song(uint gpio, uint32_t events) {
-    sleep_ms(350);
-    next_song = true;
+void button_callback(uint gpio, uint32_t events) {
+    sleep_ms(200); // Pequeno debounce
+    
+    if (gpio == BUTTON_A)
+        running = !running;
+    else if (gpio == BUTTON_B)
+        next_song = true;
 }
 
 // --- Inicialização ---
@@ -133,8 +130,8 @@ void init() {
     gpio_pull_up(BUTTON_B);
 
     // Interrupções nos botões 
-    gpio_set_irq_enabled_with_callback(BUTTON_A, GPIO_IRQ_EDGE_FALL, true, &toggle_pause);
-    gpio_set_irq_enabled_with_callback(BUTTON_B, GPIO_IRQ_EDGE_FALL, true, &skip_song);
+    gpio_set_irq_enabled_with_callback(BUTTON_A, GPIO_IRQ_EDGE_FALL, true, &button_callback);
+    gpio_set_irq_enabled_with_callback(BUTTON_B, GPIO_IRQ_EDGE_FALL, true, &button_callback);
     
     // Inicializa Buzzer
     gpio_set_function(BUZZER_1, GPIO_FUNC_PWM);
@@ -149,53 +146,12 @@ void init() {
     pwm_set_gpio_level(BUZZER_2, 0); // Desliga o PWM inicialmente
 }
 
-void play_tone(uint frequency, uint duration_ms) {
-    if (frequency > 0) {
-        uint slice_num = pwm_gpio_to_slice_num(BUZZER_1);
-        uint32_t clock_freq = clock_get_hz(clk_sys);
-        uint32_t top = clock_freq / frequency - 1;
-    
-        pwm_set_wrap(slice_num, top);
-        pwm_set_gpio_level(BUZZER_1, top / 2); // 50% de duty cycle
-        pwm_set_gpio_level(BUZZER_2, top / 2); // 50% de duty cycle
-    }
-
-    sleep_ms(duration_ms);
-    pwm_set_gpio_level(BUZZER_1, 0); // Desliga o som após a duração
-    pwm_set_gpio_level(BUZZER_2, 0); // Desliga o som após a duração
-    sleep_ms(50); // Pausa entre notas
-}
-
-void play_song(Song song) {
-    for (size_t i = 0; i < song.length; i++) {
-        if (next_song) return;
-        while (!running) {
-            if (next_song) return;
-            sleep_ms(200);
-        }
-        play_tone(song.sheet->note.frequency, song.sheet->duration);
-    }
-}
-
-void pause_song() {
-    pwm_set_gpio_level(BUZZER_1, 0); // Desliga o som após a duração
-    pwm_set_gpio_level(BUZZER_2, 0); // Desliga o som após a duração
-}
-
-void display_menu() {
-    memset(display.buffer, 0, ssd1306_buffer_length);
-    ssd1306_draw_string(display.buffer, 25, 10, "MUSIC PLAYER");
-    ssd1306_draw_string(display.buffer, 10, 30, "A: Play/Pause");
-    ssd1306_draw_string(display.buffer, 10, 40, "B: Exit");
-    render_on_display(display.buffer, &display.frame_area);
-}
-
 // --- Acende LEDs conforme notas
-void light_leds(Note note, int duration) {
+void light_leds(uint frequency, uint duration) {
     int freq = -1;
     
     // Encontrar a frequência da nota
-    freq = note.frequency;
+    freq = frequency;
     
     if (freq == -1) return; // Nota inválida
     
@@ -236,14 +192,57 @@ void clear_all() {
     neopixel_clear();
 }
 
+void play_tone(uint frequency, uint duration_ms) {
+    if (frequency > 0) {
+        uint slice_num = pwm_gpio_to_slice_num(BUZZER_1);
+        uint32_t clock_freq = clock_get_hz(clk_sys);
+        uint32_t top = clock_freq / frequency - 1;
+    
+        pwm_set_wrap(slice_num, top);
+        pwm_set_gpio_level(BUZZER_1, top / 2); // 50% de duty cycle
+        pwm_set_gpio_level(BUZZER_2, top / 2); // 50% de duty cycle
+    }
+
+    sleep_ms(duration_ms);
+    pwm_set_gpio_level(BUZZER_1, 0); // Desliga o som após a duração
+    pwm_set_gpio_level(BUZZER_2, 0); // Desliga o som após a duração
+    sleep_ms(50); // Pausa entre notas
+}
+
+void play_song(Song song) {
+    for (size_t i = 0; i < song.length; i++) {
+        if (next_song) return;
+        while (!running) {
+            if (next_song) return;
+            sleep_ms(200);
+        }
+        play_tone(song.sheet->note->frequency, song.sheet->duration);
+        light_leds(song.sheet->note->frequency, song.sheet->duration);
+    }
+}
+
+void pause_song() {
+    pwm_set_gpio_level(BUZZER_1, 0); // Desliga o som após a duração
+    pwm_set_gpio_level(BUZZER_2, 0); // Desliga o som após a duração
+}
+
+void display_menu() {
+    memset(display.buffer, 0, ssd1306_buffer_length);
+    ssd1306_draw_string(display.buffer, 25, 10, "MUSIC PLAYER");
+    ssd1306_draw_string(display.buffer, 10, 30, "A: Play/Pause");
+    ssd1306_draw_string(display.buffer, 10, 40, "B: Exit");
+    render_on_display(display.buffer, &display.frame_area);
+}
+
 void music_player() {
     int current_song_index = 0;
-    int n = sizeof(songs) / sizeof(Song);
+    // int n = sizeof(songs) / sizeof(Song);
+    int n = 2;
     display_menu();
 
-    while (1) {
+    while (true) {
         if (running)
-            play_song(songs[current_song_index]);
+            play_song(*songs[current_song_index]);
 
         if (next_song) {
             current_song_index = (current_song_index + 1) % n;
@@ -254,4 +253,11 @@ void music_player() {
         pause_song(); // Garante que o som pare se estiver pausado
         sleep_ms(200); 
     }
+}
+
+
+int play_songs() {
+    init();
+    music_player();
+    return 0;
 }

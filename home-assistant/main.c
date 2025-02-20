@@ -3,6 +3,6 @@
 
 int main() {
     // run_emulator();
-    music_player();
+    play_songs();
     return 0;
 }
