@@ -4,6 +4,7 @@
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 #include "hardware/i2c.h"
+#include "hardware/clocks.h"
 #include "libs/neopixel_pio.h"
 #include "libs/ssd1306.h"
 
@@ -75,7 +76,7 @@ Display display;
 // Definição de cores
 const uint8_t RED[3] = {25, 0, 0};
 const uint8_t MAGENTA[3] = {25, 0, 25};
-const uint8_t BLUE[3] = {25, 0, 25};
+const uint8_t BLUE[3] = {0, 0, 25};
 const uint8_t BLACK[3] = {0, 0, 0};
 
 // Índices da matriz de LEDs
@@ -91,12 +92,11 @@ bool running = false;
 bool next_song = false;
 
 void button_callback(uint gpio, uint32_t events) {
-    sleep_ms(200); // Pequeno debounce
-    
     if (gpio == BUTTON_A)
         running = !running;
     else if (gpio == BUTTON_B)
         next_song = true;
+
 }
 
 // --- Inicialização ---
@@ -135,15 +135,21 @@ void init() {
     
     // Inicializa Buzzer
     gpio_set_function(BUZZER_1, GPIO_FUNC_PWM);
-    uint slice_num1 = pwm_gpio_to_slice_num(BUZZER_1);
+    uint slice_num_1 = pwm_gpio_to_slice_num(BUZZER_1);
     gpio_set_function(BUZZER_2, GPIO_FUNC_PWM);
-    uint slice_num2 = pwm_gpio_to_slice_num(BUZZER_2);
+    uint slice_num_2 = pwm_gpio_to_slice_num(BUZZER_2);
     pwm_config config = pwm_get_default_config();
     pwm_config_set_clkdiv(&config, 4.0f); // Ajusta divisor de clock
-    pwm_init(slice_num1, &config, true);
-    pwm_init(slice_num2, &config, true);
+    pwm_init(slice_num_1, &config, true);
+    pwm_init(slice_num_2, &config, true);
     pwm_set_gpio_level(BUZZER_1, 0); // Desliga o PWM inicialmente
     pwm_set_gpio_level(BUZZER_2, 0); // Desliga o PWM inicialmente
+}
+
+
+// --- Limpa LEDs ---
+void clear_all() {
+    neopixel_clear();
 }
 
 // --- Acende LEDs conforme notas
@@ -187,20 +193,17 @@ void light_leds(uint frequency, uint duration) {
     neopixel_write();
 }
 
-// --- Limpa LEDs ---
-void clear_all() {
-    neopixel_clear();
-}
-
 void play_tone(uint frequency, uint duration_ms) {
     if (frequency > 0) {
-        uint slice_num = pwm_gpio_to_slice_num(BUZZER_1);
+        uint slice_num_1 = pwm_gpio_to_slice_num(BUZZER_1);
+        uint slice_num_2 = pwm_gpio_to_slice_num(BUZZER_2);
         uint32_t clock_freq = clock_get_hz(clk_sys);
         uint32_t top = clock_freq / frequency - 1;
     
-        pwm_set_wrap(slice_num, top);
+        pwm_set_wrap(slice_num_1, top);
+        pwm_set_wrap(slice_num_2, top);
         pwm_set_gpio_level(BUZZER_1, top / 2); // 50% de duty cycle
-        pwm_set_gpio_level(BUZZER_2, top / 2); // 50% de duty cycle
+        pwm_set_gpio_level(BUZZER_2, top / 4); // 25% de duty cycle
     }
 
     sleep_ms(duration_ms);
@@ -210,14 +213,17 @@ void play_tone(uint frequency, uint duration_ms) {
 }
 
 void play_song(Song song) {
-    for (size_t i = 0; i < song.length; i++) {
-        if (next_song) return;
+    for (int i = 0; i < song.length; i++) {
+        clear_all();
+        if (next_song) 
+            return;
         while (!running) {
-            if (next_song) return;
+            if (next_song) 
+                return;
             sleep_ms(200);
         }
-        play_tone(song.sheet->note->frequency, song.sheet->duration);
-        light_leds(song.sheet->note->frequency, song.sheet->duration);
+        play_tone(song.sheet[i].note->frequency, song.sheet[i].duration);
+        light_leds(song.sheet[i].note->frequency, song.sheet[i].duration);
     }
 }
 
@@ -230,18 +236,18 @@ void display_menu() {
     memset(display.buffer, 0, ssd1306_buffer_length);
     ssd1306_draw_string(display.buffer, 25, 10, "MUSIC PLAYER");
     ssd1306_draw_string(display.buffer, 10, 30, "A: Play/Pause");
-    ssd1306_draw_string(display.buffer, 10, 40, "B: Exit");
+    ssd1306_draw_string(display.buffer, 10, 40, "B: Next Song");
     render_on_display(display.buffer, &display.frame_area);
 }
 
 void music_player() {
     int current_song_index = 0;
-    // int n = sizeof(songs) / sizeof(Song);
-    int n = 2;
+    int n = sizeof(songs) / sizeof(Song*);
     display_menu();
 
     while (true) {
         if (running)
+            // printf("Running!\n");
             play_song(*songs[current_song_index]);
 
         if (next_song) {

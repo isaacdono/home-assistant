@@ -103,11 +103,12 @@ void neopixel_write()
 /**
  * Limpa o buffer de pixels.
  */
-void neopixel_clear()
-{
-    const uint8_t BLACK[3] = {0, 0, 0};
-    for (uint i = 0; i < LED_COUNT; i++)
-        neopixel_set(i, BLACK);
+void neopixel_clear() {
+    for (uint i = 0; i < LED_COUNT; i++) {
+        leds[i].R = 0;
+        leds[i].G = 0;
+        leds[i].B = 0;
+    }
     neopixel_write();
 }
 // int main() {
