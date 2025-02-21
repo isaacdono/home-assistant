@@ -139,7 +139,7 @@ void init() {
     gpio_set_function(BUZZER_2, GPIO_FUNC_PWM);
     uint slice_num_2 = pwm_gpio_to_slice_num(BUZZER_2);
     pwm_config config = pwm_get_default_config();
-    pwm_config_set_clkdiv(&config, 4.0f); // Ajusta divisor de clock
+    pwm_config_set_clkdiv(&config, 32.0f); // Ajusta divisor de clock
     pwm_init(slice_num_1, &config, true);
     pwm_init(slice_num_2, &config, true);
     pwm_set_gpio_level(BUZZER_1, 0); // Desliga o PWM inicialmente
@@ -198,12 +198,13 @@ void play_tone(uint frequency, uint duration_ms) {
         uint slice_num_1 = pwm_gpio_to_slice_num(BUZZER_1);
         uint slice_num_2 = pwm_gpio_to_slice_num(BUZZER_2);
         uint32_t clock_freq = clock_get_hz(clk_sys);
-        uint32_t top = clock_freq / frequency - 1;
+        uint32_t top_1 = (clock_freq / 32.0f) / (frequency / 4) - 1;
+        uint32_t top_2 = (clock_freq / 32.0f) / (frequency / 8) - 1;
     
-        pwm_set_wrap(slice_num_1, top);
-        pwm_set_wrap(slice_num_2, top);
-        pwm_set_gpio_level(BUZZER_1, top / 2); // 50% de duty cycle
-        pwm_set_gpio_level(BUZZER_2, top / 4); // 25% de duty cycle
+        pwm_set_wrap(slice_num_1, top_1 / 2);
+        pwm_set_gpio_level(BUZZER_1, top_1 / 8); // reduz duty cycle
+        pwm_set_wrap(slice_num_2, top_2 / 4);
+        pwm_set_gpio_level(BUZZER_2, top_2 / 16); // reduz duty cycle
     }
 
     sleep_ms(duration_ms);
