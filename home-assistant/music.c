@@ -203,8 +203,10 @@ void play_tone(uint frequency, uint duration_ms) {
     
         pwm_set_wrap(slice_num_1, top_1 / 2);
         pwm_set_gpio_level(BUZZER_1, top_1 / 8); // reduz duty cycle
+        // pwm_set_gpio_level(BUZZER_1, 12000); 
         pwm_set_wrap(slice_num_2, top_2 / 4);
         pwm_set_gpio_level(BUZZER_2, top_2 / 16); // reduz duty cycle
+        // pwm_set_gpio_level(BUZZER_1,6000); 
     }
 
     sleep_ms(duration_ms);
