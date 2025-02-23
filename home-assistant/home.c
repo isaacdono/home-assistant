@@ -312,14 +312,14 @@ typedef struct {
     uint8_t length;
 } Song;
 
-static const Tone mario_theme_sheet[] = {
-    {&NOTES[64], 125}, {&NOTES[64], 125}, {&NOTES[88], 125}, {&NOTES[64], 125},
-    {&NOTES[88], 125}, {&NOTES[72], 125}, {&NOTES[64], 125}, {&NOTES[88], 125},
-    {&NOTES[78], 250}, {&NOTES[88], 125}, {&NOTES[76], 250}, {&NOTES[88], 250},
-    {&NOTES[72], 125}, {&NOTES[88], 125}, {&NOTES[64], 125}, {&NOTES[60], 125},
-    {&NOTES[67], 125}, {&NOTES[76], 250}, {&NOTES[72], 125}, {&NOTES[67], 125},
-    {&NOTES[64], 250}, {&NOTES[88], 250}
-};
+// static const Tone mario_theme_sheet[] = {
+//     {&NOTES[64], 125}, {&NOTES[64], 125}, {&NOTES[88], 125}, {&NOTES[64], 125},
+//     {&NOTES[88], 125}, {&NOTES[72], 125}, {&NOTES[64], 125}, {&NOTES[88], 125},
+//     {&NOTES[78], 250}, {&NOTES[88], 125}, {&NOTES[76], 250}, {&NOTES[88], 250},
+//     {&NOTES[72], 125}, {&NOTES[88], 125}, {&NOTES[64], 125}, {&NOTES[60], 125},
+//     {&NOTES[67], 125}, {&NOTES[76], 250}, {&NOTES[72], 125}, {&NOTES[67], 125},
+//     {&NOTES[64], 250}, {&NOTES[88], 250}
+// };
 
 static const Tone imperial_march_sheet[] = {
     {&NOTES[52], 500}, {&NOTES[52], 500}, {&NOTES[56], 350}, {&NOTES[60], 150},
@@ -328,9 +328,9 @@ static const Tone imperial_march_sheet[] = {
     {&NOTES[56], 500}, {&NOTES[60], 350}, {&NOTES[64], 150}, {&NOTES[56], 1000}
 };
 
-const Song mario_theme = {mario_theme_sheet, sizeof(mario_theme_sheet) / sizeof(Tone)};
+// const Song mario_theme = {mario_theme_sheet, sizeof(mario_theme_sheet) / sizeof(Tone)};
 const Song imperial_march = {imperial_march_sheet, sizeof(imperial_march_sheet) / sizeof(Tone)};
-const Song *songs[] = {&mario_theme, &imperial_march};
+const Song *songs[] = {&imperial_march};
 
 // Definição de cores
 const uint8_t RED[3] = {25, 0, 0};
@@ -348,13 +348,14 @@ int index_[5][5] = {
 };
 
 bool running = false;
-bool next_song = false;
+// bool next_song = false;
+bool back = false;
 
 void button_callback(uint gpio, uint32_t events) {
     if (gpio == BUTTON_A)
     running = !running;
     else if (gpio == BUTTON_B)
-    next_song = true;
+    back = true;
     
 }
 
@@ -443,31 +444,33 @@ void play_music_tone(uint frequency, uint duration_ms) {
     sleep_ms(50); // Pausa entre notas
 }
 
-void play_song(Song song) {
-    for (int i = 0; i < song.length; i++) {
-        clear_all();
-        if (next_song) 
-        return;
-        while (!running) {
-            if (next_song) 
-            return;
-            sleep_ms(200);
-        }
-        play_music_tone(song.sheet[i].note->frequency, song.sheet[i].duration);
-        light_music_leds(song.sheet[i].note->frequency, song.sheet[i].duration);
-    }
-}
 
 void pause_song() {
     pwm_set_gpio_level(BUZZER_1, 0); // Desliga o som após a duração
     pwm_set_gpio_level(BUZZER_2, 0); // Desliga o som após a duração
 }
 
+void play_song(Song song) {
+    for (int i = 0; i < song.length; i++) {
+        clear_all();
+        if (back) 
+            return;
+        while (!running) {
+            // pause_song();
+            sleep_ms(200);
+            if (back) 
+                return;
+        }
+        play_music_tone(song.sheet[i].note->frequency, song.sheet[i].duration);
+        light_music_leds(song.sheet[i].note->frequency, song.sheet[i].duration);
+    }
+}
+
 void display_music_menu() {
     memset(display.buffer, 0, ssd1306_buffer_length);
     ssd1306_draw_string(display.buffer, 25, 10, "MUSIC PLAYER");
     ssd1306_draw_string(display.buffer, 10, 30, "A: Play/Pause");
-    ssd1306_draw_string(display.buffer, 10, 40, "B: Next Song");
+    ssd1306_draw_string(display.buffer, 10, 40, "B: Exit");
     render_on_display(display.buffer, &display.frame_area);
 }
 
@@ -477,14 +480,20 @@ void music_player() {
     display_music_menu();
     
     while (true) {
-        if (running)
-        // printf("Running!\n");
-        play_song(*songs[current_song_index]);
+        if (running) {
+            // printf("Running!\n");
+            sleep_ms(50);
+            play_song(*songs[current_song_index]);
+        }
         
-        if (next_song) {
-            current_song_index = (current_song_index + 1) % n;
-            running = true;
-            next_song = false;
+        if (back) {
+            sleep_ms(300);
+            running = false;
+            back = false;
+            memset(display.buffer, 0, ssd1306_buffer_length);
+            render_on_display(display.buffer, &display.frame_area);
+            clear_all();
+            return;
         }
         
         pause_song(); // Garante que o som pare se estiver pausado
@@ -495,6 +504,9 @@ void music_player() {
 int play_songs() {
     init_player();
     music_player();
+    gpio_set_irq_enabled_with_callback(BUTTON_A, GPIO_IRQ_EDGE_FALL, false, &button_callback);
+    gpio_set_irq_enabled_with_callback(BUTTON_B, GPIO_IRQ_EDGE_FALL, false, &button_callback);
+
     return 0;
 }
 
@@ -617,39 +629,42 @@ bool detect_loud_noise() {
     return false;
 }
 
+
+
 // Exibe o menu
 void display_noise_menu() {
     memset(display.buffer, 0, ssd1306_buffer_length);
     ssd1306_draw_string(display.buffer, 10, 10, "NOISE DETECTOR");
-    ssd1306_draw_string(display.buffer, 5, 30, "A: Listen/Pause");
+    ssd1306_draw_string(display.buffer, 5, 30, "A: Listen/Stop");
     ssd1306_draw_string(display.buffer, 5, 40, "B: Exit");
     render_on_display(display.buffer, &display.frame_area);
 }
 
 // Loop principal de detecção
+
 void detect_loop() {
     display_noise_menu();
     listening = true;
-    
     while (true) {
-        if (listening) {
-            if (detect_loud_noise())
+            if (listening) {
+                if (detect_loud_noise())
                 activate_alarm();
-            else if (detect_double_clap())
+                else if (detect_double_clap())
                 toggle_leds();
+            }
+            if (!gpio_get(BUTTON_A)) {
+                sleep_ms(300);
+                listening = !listening;  // Alterna entre ouvir e pausar
+            }
+            else if (!gpio_get(BUTTON_B)) {
+                sleep_ms(300);
+                memset(display.buffer, 0, ssd1306_buffer_length);
+                render_on_display(display.buffer, &display.frame_area);
+                neopixel_clear();
+                break;  // Sai do loop
+            }
+            sleep_ms(10);
         }
-        if (!gpio_get(BUTTON_A)) {
-            listening = !listening;  // Alterna entre ouvir e pausar
-            sleep_ms(300);
-        }
-        if (!gpio_get(BUTTON_B)) {
-            memset(display.buffer, 0, ssd1306_buffer_length);
-            render_on_display(display.buffer, &display.frame_area);
-            neopixel_clear();
-            break;  // Sai do loop
-        }
-        sleep_ms(10);
-    }
 }
 
 // Função principal
@@ -670,14 +685,14 @@ void init() {
     
     // Inicializa LEDs
     neopixel_init(LEDS_MATRIX);
-
+    
     // Inicializa I2C para OLED
     i2c_init(i2c1, ssd1306_i2c_clock * 1000);
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA);
     gpio_pull_up(I2C_SCL);
-
+    
     // Inicializa Display OLED
     ssd1306_init();
     struct render_area area = {0, ssd1306_width - 1, 0, ssd1306_n_pages - 1};
@@ -685,7 +700,7 @@ void init() {
     calculate_render_area_buffer_length(&display.frame_area);
     memset(display.buffer, 0, ssd1306_buffer_length);
     render_on_display(display.buffer, &display.frame_area);
-
+    
     // Inicializa Botões
     gpio_init(BUTTON_A);
     gpio_init(BUTTON_B);
@@ -693,7 +708,28 @@ void init() {
     gpio_set_dir(BUTTON_B, GPIO_IN);
     gpio_pull_up(BUTTON_A);
     gpio_pull_up(BUTTON_B);
+    
+}
 
+void light_home_leds() {
+    int i, j;
+
+    const uint8_t WHITE[3] = {15, 15, 15};
+    const uint8_t BLACK[3] = {0, 0, 0};
+
+    const uint8_t *colors[5][5] = {
+        {BLACK, WHITE, WHITE, WHITE, BLACK},
+        {BLACK, WHITE, BLACK, WHITE, BLACK},
+        {WHITE, WHITE, WHITE, WHITE, WHITE},
+        {BLACK, WHITE, WHITE, WHITE, BLACK},
+        {BLACK, BLACK, WHITE, BLACK, BLACK},
+    };
+    
+    for (i = 0; i < 5; i++)
+        for (j = 0; j < 5; j++)
+            neopixel_set(i*5 + j, colors[i][j]);
+    
+    neopixel_write();
 }
 
 void show_menu(int option) {
@@ -708,19 +744,21 @@ void show_menu(int option) {
 
 int main() {
     init();
-
+    
     int option = 0;
     
+    show_menu(option);
+    light_home_leds();
     while (true) {
-        show_menu(option);
 
         if (!gpio_get(BUTTON_A)) {  // Alterna entre opções
+            sleep_ms(300);
             option = (option + 1) % 3;
             show_menu(option);
-            sleep_ms(300);
         }
         if (!gpio_get(BUTTON_B)) {  // Confirma seleção
             sleep_ms(300);
+            clear_all();
             switch (option) {
                     case 0: 
                         run_emulator(); 
@@ -732,6 +770,8 @@ int main() {
                         detect_sounds(); 
                         break;
             }
+            show_menu(option);
+            light_home_leds();
         }
         sleep_ms(200);
     }
