@@ -94,8 +94,8 @@ void light_snake_leds() {
     };
     
     for (i = 0; i < 5; i++)
-    for (j = 0; j < 5; j++)
-    neopixel_set(i*5 + j, colors[i][j]);
+        for (j = 0; j < 5; j++)
+            neopixel_set(i*5 + j, colors[i][j]);
     
     neopixel_write();
 }
@@ -522,7 +522,7 @@ int play_songs() {
 #define MIC_CHANNEL 2
 #define OFFSET 2048      // ADC Pico W vai de 0 a 4095, offset no meio
 #define CLAP_THRESHOLD 0.30 
-#define NOISE_THRESHOLD 0.60
+#define NOISE_THRESHOLD 0.70
 
 // Estado global
 bool listening = false;   // Se a detecção de som está ativa
@@ -616,7 +616,7 @@ void activate_alarm() {
 
 // Detecta som alto
 bool detect_loud_noise() {
-    float volume_level = get_mean_vu_value(15);
+    float volume_level = get_mean_vu_value(30);
     printf("Noise VU Level %.2f\n", volume_level);
     if (volume_level > NOISE_THRESHOLD) {
         // absolute_time_t now = get_absolute_time();
@@ -660,7 +660,7 @@ void detect_loop() {
                 sleep_ms(300);
                 memset(display.buffer, 0, ssd1306_buffer_length);
                 render_on_display(display.buffer, &display.frame_area);
-                neopixel_clear();
+                clear_all();
                 break;  // Sai do loop
             }
             sleep_ms(10);
@@ -750,25 +750,24 @@ int main() {
     show_menu(option);
     light_home_leds();
     while (true) {
-
         if (!gpio_get(BUTTON_A)) {  // Alterna entre opções
             sleep_ms(300);
             option = (option + 1) % 3;
             show_menu(option);
         }
-        if (!gpio_get(BUTTON_B)) {  // Confirma seleção
-            sleep_ms(300);
+        else if (!gpio_get(BUTTON_B)) {  // Confirma seleção
             clear_all();
+            sleep_ms(300);
             switch (option) {
-                    case 0: 
-                        run_emulator(); 
-                        break;
-                    case 1: 
-                        play_songs(); 
-                        break;
-                    case 2: 
-                        detect_sounds(); 
-                        break;
+                case 0: 
+                    run_emulator(); 
+                    break;
+                case 1: 
+                    play_songs(); 
+                    break;
+                case 2: 
+                    detect_sounds(); 
+                    break;
             }
             show_menu(option);
             light_home_leds();
