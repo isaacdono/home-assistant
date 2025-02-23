@@ -9,6 +9,8 @@
 #include "libs/neopixel_pio.h" 
 #include "libs/ssd1306.h"
 
+#include "noise.h"
+
 // Configuração do Buzzer
 #define BUZZER_PIN 21
 
@@ -115,7 +117,7 @@ float get_mean_vu_value(int n) {
 // Detecta palmas
 bool detect_double_clap() {
     float volume_level = get_mean_vu_value(10);
-    printf("Mean VU Level %.2f\n", volume_level);
+    // printf("Mean VU Level %.2f\n", volume_level);
     if (volume_level > CLAP_THRESHOLD && volume_level < CLAP_THRESHOLD + 0.2) {
         absolute_time_t now = get_absolute_time();
         int64_t time_diff = absolute_time_diff_us(last_clap_time, now) / 1000;
@@ -153,7 +155,7 @@ void activate_alarm() {
 // Detecta som alto
 bool detect_loud_noise() {
     float volume_level = get_mean_vu_value(25);
-    printf("Mean VU Level %.2f\n", volume_level);
+    // printf("Mean VU Level %.2f\n", volume_level);
     if (volume_level > NOISE_THRESHOLD) {
         // absolute_time_t now = get_absolute_time();
         // int64_t time_diff = absolute_time_diff_us(last_noise_time, now) / 1000;
