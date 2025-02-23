@@ -9,8 +9,6 @@
 #include "libs/neopixel_pio.h"
 #include "libs/ssd1306.h"
 
-#include "games.h"
-
 // --- Definições de hardware ---
 #define BUZZER 21
 #define BUTTON_A 5

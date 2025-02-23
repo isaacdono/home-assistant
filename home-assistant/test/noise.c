@@ -9,8 +9,6 @@
 #include "libs/neopixel_pio.h" 
 #include "libs/ssd1306.h"
 
-#include "noise.h"
-
 // Configuração do Buzzer
 #define BUZZER_PIN 21
 

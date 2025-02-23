@@ -8,8 +8,6 @@
 #include "libs/neopixel_pio.h"
 #include "libs/ssd1306.h"
 
-#include "music.h"
-
 // --- Definições de hardware ---
 #define BUZZER_1 21
 #define BUZZER_2 10

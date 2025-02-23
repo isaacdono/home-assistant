@@ -49,6 +49,7 @@
         "string.h": "c",
         "clocks.h": "c",
         "stdio.h": "c",
-        "math.h": "c"
+        "math.h": "c",
+        "ws2818b.pio.h": "c"
     }
 }

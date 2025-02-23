@@ -1,1 +1,0 @@
-int detect_sounds();
