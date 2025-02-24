@@ -522,7 +522,7 @@ int play_songs() {
 #define MIC_CHANNEL 2
 #define OFFSET 2048      // ADC Pico W vai de 0 a 4095, offset no meio
 #define CLAP_THRESHOLD 0.30 
-#define NOISE_THRESHOLD 0.70
+#define NOISE_THRESHOLD 0.60
 
 // Estado global
 bool listening = false;   // Se a detecção de som está ativa
