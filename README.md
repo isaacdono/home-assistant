@@ -45,7 +45,7 @@ Este projeto foi desenvolvido utilizando a placa BitDogLab (Raspberry Pi Pico W)
    git clone https://github.com/seu-usuario/seu-repositorio.git
    ```
 
-2. Configure a IDE com o SDK da Raspberry Pi Pico.
+2. Configure a IDE com o SDK da Raspberry Pi Pico W (1.5.1).
 
 3. Compile e faça o upload do código para o Raspberry Pi Pico W.
 
