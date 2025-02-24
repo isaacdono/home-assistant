@@ -2,7 +2,10 @@
 
 Este projeto foi desenvolvido utilizando a placa BitDogLab (Raspberry Pi Pico W) e implementa um sistema de múltiplas funcionalidades, incluindo um jogo da cobrinha, um reprodutor de músicas e um sistema de detecção de sons. A interação é feita por meio de um display OLED, LEDs NeoPixel e botões físicos.
 
-![Menu inicial da aplicação](menu.jpg)
+<!-- ![Menu inicial da aplicação](menu.jpg)  -->
+
+
+[<img src="/snake/pics/start.jpg" width="300"/>](menu.jpg)
 
 ## Funcionalidades
 
