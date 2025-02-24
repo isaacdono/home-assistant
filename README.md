@@ -5,7 +5,7 @@ Este projeto foi desenvolvido utilizando a placa BitDogLab (Raspberry Pi Pico W)
 <!-- ![Menu inicial da aplicação](menu.jpg)  -->
 
 
-[<img src="/snake/pics/start.jpg" width="300"/>](menu.jpg)
+[<img src="menu.jpg" width="450"/>](menu.jpg)
 
 ## Funcionalidades
 
