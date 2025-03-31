@@ -1,6 +1,6 @@
 # Unidade multimídia para uso doméstico
 
-Este projeto foi desenvolvido utilizando a placa BitDogLab (Raspberry Pi Pico W) e implementa um sistema de múltiplas funcionalidades, incluindo um jogo da cobrinha, um reprodutor de músicas e um sistema de detecção de sons. A interação é feita por meio de um display OLED, LEDs NeoPixel e botões físicos.
+Este projeto foi desenvolvido utilizando a placa BitDogLab (Raspberry Pi Pico W) e implementa um sistema de múltiplas funcionalidades, incluindo um jogo da cobrinha, um reprodutor de músicas e um sistema de detecção de sons. A interação é feita por meio de um display OLED, LEDs NeoPixel e botões físicos. [Vídeo da aplicação](https://youtube.com/shorts/K09zj19fg7g?si=HQpDA_abdWbZp9bu)
 
 <!-- ![Menu inicial da aplicação](menu.jpg)  -->
 
